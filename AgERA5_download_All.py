@@ -18,6 +18,27 @@ from AgERA5_RH_download import download_RH
 from AgERA5_WS_download import download_WS
 from AgERA5_SR_download import download_SR
 from AgERA5_Pr_download import download_Pr
+import time
+
+def retry_download(func, retries=50, delay=60):
+    """
+    Attempts to execute a download function with retry logic.
+
+    Parameters:
+    - func: The function to execute.
+    - retries: Number of times to retry on failure.
+    - delay: Delay between retries in seconds.
+    """
+    for attempt in range(retries):
+        try:
+            func()
+            break  # Exit the loop if successful
+        except Exception as e:
+            print(f"Download failed: {e}. Retrying in {delay} seconds... (Attempt {attempt + 1} of {retries})")
+            time.sleep(delay)
+    else:
+        print(f"Download failed after {retries} attempts.")
+
 
 def main():
     # Get user input for the start year and end year
@@ -25,7 +46,7 @@ def main():
     end_year = int(input("Enter the end year (e.g., 2024): "))
 
     # Base directory
-    base_dir = "/home/steynas/AgERA5/home/steynas/AgERA5"
+    base_dir = "/home/steynas/AgERA5/"
     
     # Loop through each year and each month
     for year in range(start_year, end_year + 1):
@@ -33,24 +54,18 @@ def main():
             month_str = str(month).zfill(2)  # Format month as 01, 02, ..., 12
             # Show progress
             print("Processing: ",year , month_str)
-            
             # Download Tmin and Tmax data
-            download_T(str(year), month_str, base_dir)
-    
+            retry_download(lambda: download_T(str(year), month_str, base_dir))
             # Download Vapour Pressure data
-            download_VP(str(year), month_str, base_dir)
-    
+            retry_download(lambda: download_VP(str(year), month_str, base_dir))
             # Download Relative Humidity data
-            download_RH(str(year), month_str, base_dir)
-    
+            retry_download(lambda: download_RH(str(year), month_str, base_dir))
             # Download Wind Speed data
-            download_WS(str(year), month_str, base_dir)
-    
+            retry_download(lambda: download_WS(str(year), month_str, base_dir))
             # Download Solar Radiation Flux data
-            download_SR(str(year), month_str, base_dir)
-    
+            retry_download(lambda: download_SR(str(year), month_str, base_dir))
             # Download Precipitation Flux data
-            download_Pr(str(year), month_str, base_dir)
+            retry_download(lambda: download_Pr(str(year), month_str, base_dir))
 
 if __name__ == "__main__":
     main()

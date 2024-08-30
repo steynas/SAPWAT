@@ -7,11 +7,14 @@ Created on Thu Aug 29 14:52:01 2024
 
 import rasterio
 import pandas as pd
+import os
 
 # Define file paths
-dem_file = r'C:\AgERA5\DEM\merged_dem.tif'
-grid_points_file = r'C:\AgERA5\AgERA5_Grid_Points.csv'
-output_file = r'C:\AgERA5\AgERA5_GridPoint_Elevations.csv'
+base_dir = "C:/AgERA5"
+dem_dir = os.path.join(base_dir, "DEM")
+dem_file = os.path.join(dem_dir, "merged_dem.tif")
+grid_points_file = os.path.join(dem_dir, "AgERA5_GridPoints.csv")
+output_file = os.path.join(dem_dir, "AgERA5_GridPoint_Elevations.csv")
 
 # Load the DEM file
 with rasterio.open(dem_file) as dem:
