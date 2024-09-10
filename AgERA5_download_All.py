@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Aug 29 12:39:19 2024
-
-@author: SteynAS
-"""
 
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug 27 21:22:07 2024
+This is a script to download AgERA5 data
+Variables: Tmax, Tmin, VP, RH, WS, SR, Pr
 
-@author: SteynAS
+@author: SteynAS@ufs.ac.za
 """
 
 from AgERA5_T_download import download_T
@@ -20,7 +15,7 @@ from AgERA5_SR_download import download_SR
 from AgERA5_Pr_download import download_Pr
 import time
 
-def retry_download(func, retries=50, delay=60):
+def retry_download(func, retries=600, delay=60, timeout=300):
     """
     Attempts to execute a download function with retry logic.
 
@@ -28,6 +23,7 @@ def retry_download(func, retries=50, delay=60):
     - func: The function to execute.
     - retries: Number of times to retry on failure.
     - delay: Delay between retries in seconds.
+    - timeout: Timeout for the download operation in seconds.
     """
     for attempt in range(retries):
         try:
