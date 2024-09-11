@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug 30 10:33:25 2024
+This is a script to extract AgERA5 grid point coordinates
+and writhe them to a CSV file
 
-@author: SteynAS
+@author: SteynAS@ufs.ac.za
 """
 
 import netCDF4 as nc

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 29 14:52:01 2024
+This is a script to map the DEM to AgERA5 grid,
+extract grid point elevations and write to CSV file 
 
-@author: SteynAS
+@author: SteynAS@ufs.ac.za
 """
 
 import rasterio
