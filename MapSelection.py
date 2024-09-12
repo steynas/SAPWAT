@@ -20,6 +20,7 @@ selected_lon = None
 selected_lat = None
 popup_text = None
 closest_gridpoint = None
+instruction_text = None
 
 # Path to the AgERA5 DEM data
 base_dir = "C:/AgERA5"
@@ -71,11 +72,16 @@ def is_point_on_land(lon, lat):
 
 # Function to handle the click event on the map
 def onclick(event, ax, button):
-    global selected_lon, selected_lat, popup_text, closest_gridpoint
+    global selected_lon, selected_lat, popup_text, closest_gridpoint, instruction_text
 
     # Ignore clicks outside the map (e.g., in the button area)
     if event.inaxes != ax:
         return
+
+    # Remove the instruction message on first click
+    if instruction_text:
+        instruction_text.remove()
+        instruction_text = None
 
     # Get the clicked coordinates
     lon, lat = event.xdata, event.ydata
@@ -115,7 +121,7 @@ def on_button_clicked(event):
 
 # Function to plot the map and allow coordinate selection
 def plot_clickable_map():
-    global selected_lon, selected_lat, popup_text
+    global selected_lon, selected_lat, popup_text, instruction_text
 
     fig, ax = plt.subplots(figsize=(10, 6), subplot_kw={'projection': ccrs.PlateCarree()})
 
@@ -135,35 +141,113 @@ def plot_clickable_map():
 
     # Plot major cities
     cities = {
-        "Cape Town": (18.42, -33.93),
-        "Kimberley": (24.77, -28.74),
-        "Bloemfontein": (26.21, -29.12),
-        "Bhisho": (27.31, -32.85),
-        "Pietermaritzburg": (30.38, -29.61),
-        "Pretoria": (28.22, -25.75),
-        "Polokwane": (29.47, -23.90),
-        "Mahikeng": (25.65, -25.85),
-        "Mbombela": (31.03, -25.47),
-        "Upington": (21.25, -28.45),
-        "Beaufort West": (22.57, -32.36),
-        "Newcastle": (29.92, -27.75),
-        "Calvinia": (19.77, -31.47),
-        "Gqeberha": (25.60, -33.96),
-        "Vaalharts": (24.85, -27.95),
-        "Windhoek": (17.08, -22.57),
-        "Keetmanshoop": (18.13, -26.57),
-        "Gaborone": (25.92, -24.65),
-        "Serowe": (26.71, -22.41),
-        "Ghanzi": (21.70, -21.70),
-        "Bulawayo": (28.58, -20.15),
-        "Chiredzi": (31.67, -21.05),
-        "Maputo": (32.59, -25.96),
-        "Mbabane": (31.13, -26.32)
+    # Namibia
+    "Windhoek": (17.08, -22.57),
+    "Keetmanshoop": (18.13, -26.57),
+    "Mariental": (18.14, -24.63),
+    "Ruacana": (14.42, -17.42),
+    "Aussenkehr": (17.43, -28.26),
+    "Otjiwarongo": (16.65, -20.46),
+    "Gobabis": (18.97, -22.45),
+    "Lüderitz": (15.16, -26.65),
+    # Botswana
+    "Gaborone": (25.92, -24.65),
+    "Serowe": (26.71, -22.41),
+    "Ghanzi": (21.70, -21.70),
+    "Francistown": (27.51, -21.17),
+    "Tshane": (21.87, -24.02),
+    "Maun": (23.42, -20.00),
+    "Orapa": (25.39, -21.31),
+    # Zimbabwe
+    "Bulawayo": (28.58, -20.15),
+    "Chiredzi": (31.67, -21.05),
+    "Masvingo": (30.82, -20.06),
+    "Chipinge": (32.62, -20.20),
+    # Mozambique
+    "Maputo": (32.59, -25.96),
+    "Chokwe": (33.00, -24.53),
+    "Xai-Xai": (33.64, -25.04),
+    "Mabote": (34.13, -22.04),
+    # Eswatini
+    "Mbabane": (31.13, -26.32),
+    # Lesotho
+    "Maseru": (27.48, -29.31),
+    # Limpopo
+    "Polokwane": (29.47, -23.90),
+    "Thohoyandou": (30.48, -22.95),
+    "Hoedspruit": (30.96, -24.35),
+    "Groblersdal": (29.39, -25.17),
+    "Lephalale": (27.74, -23.66),
+    "Musina": (30.05, -22.35),
+    "Modimolle": (28.41, -24.70),
+    # Kwazulu-Natal
+    "Pietermaritzburg": (30.38, -29.61),
+    "Newcastle": (29.92, -27.75),
+    "Ulundi": (31.41, -28.33),
+    "Jozini": (32.06, -27.43),
+    "Bergville": (29.37, -28.73),
+    "Durban": (31.02, -29.85),
+    "Richards Bay": (32.08, -28.78),
+    "Kokstad": (29.42, -30.55),
+    "Port Edward": (30.23, -31.05),
+    # Free State
+    "Bloemfontein": (26.21, -29.12),
+    "Koffiefontein": (25.00, -29.42),
+    "Bethlehem": (28.31, -28.23),
+    "Kroonstad": (27.66, -27.65),
+    "Bothaville": (26.62, -27.39),
+    # North-West
+    "Mahikeng": (25.65, -25.85),
+    "Hartswater": (24.79, -27.78),
+    "Potchefstroom": (27.11, -26.72),
+    "Vryburg": (24.73, -26.96),
+    "Pomfret": (23.22, -25.87),
+    # Northern Cape
+    "Kimberley": (24.77, -28.74),
+    "Kuruman": (23.43, -27.45),
+    "Upington": (21.25, -28.45),
+    "De Aar": (24.01, -30.65),
+    "Vanderkloof": (24.74, -29.99),
+    "Brandvlei": (20.47, -30.47),
+    "Calvinia": (19.77, -31.47),
+    "Douglas": (23.77, -29.06),
+    "Kakamas": (20.62, -28.78),
+    "Springbok": (17.88, -29.67),
+    "Twee Rivieren": (20.61, -26.47),
+    # Western Cape
+    "Cape Town": (18.42, -33.93),
+    "Beaufort West": (22.57, -32.36),
+    "Worcester": (19.44, -33.65),
+    "Vredenburg": (17.99, -32.91),
+    "Bredasdorp": (20.04, -34.53),
+    "Riversdale": (21.25, -34.09),
+    "Oudtshoorn": (22.20, -33.59),
+    "George": (22.45, -33.96),
+    "Vredendal": (18.50, -31.67),
+    # Eastern Cape
+    "Gqeberha": (25.60, -33.96),
+    "East London": (27.91, -33.02),
+    "Aliwal North": (26.71, -30.69),
+    "Bhisho": (27.31, -32.85),
+    "Kirkwood": (25.45, -33.39),
+    "Cradock": (25.61, -32.16),
+    "Queenstown": (26.88, -31.90),
+    "Patensie": (24.82, -33.78),
+    "Mthatha": (28.78, -31.59),
+    # Gauteng
+    "Pretoria": (28.22, -25.75),
+    # Mpumalanga
+    "Mbombela": (31.03, -25.47),
+    "Ermelo": (29.99, -26.52)
     }
 
     for city, coord in cities.items():
-        ax.plot(coord[0], coord[1], marker='o', color='red', markersize=5, transform=ccrs.PlateCarree())
-        ax.text(coord[0] + 0.2, coord[1] - 0.2, city, transform=ccrs.PlateCarree(), fontsize=9)
+        ax.plot(coord[0], coord[1], marker='o', color='red', markersize=3, transform=ccrs.PlateCarree())
+        ax.text(coord[0] + 0.2, coord[1] - 0.2, city, transform=ccrs.PlateCarree(), fontsize=6)
+
+    # Add an instruction message at the top
+    instruction_text = ax.text(0.5, 1.05, "Click on any land area to select coordinates",
+                               transform=ax.transAxes, fontsize=12, ha='center', color='blue')
 
     # Create a button to lock in the coordinates
     button_ax = fig.add_axes([0.7, 0.05, 0.2, 0.05])  # Bottom-right corner
@@ -176,6 +260,9 @@ def plot_clickable_map():
 
     # Display the plot
     plt.show()
+
+# Call the function to
+
 
 # Call the function to plot the clickable map
 plot_clickable_map()
