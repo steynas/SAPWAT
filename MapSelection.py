@@ -4,15 +4,14 @@ Created on Thu Sep 12 01:06:28 2024
 
 @author: SteynAS
 """
-
+import os
+import pandas as pd
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from shapely.geometry import Point
 from cartopy.io.shapereader import natural_earth, Reader
 from matplotlib.widgets import Button
-import os
-import pandas as pd
 from math import radians, cos, sin, sqrt, atan2
 
 # Global variables to store coordinates
@@ -21,6 +20,8 @@ selected_lat = None
 popup_text = None
 closest_gridpoint = None
 instruction_text = None
+selected_marker = None
+distance_text = None
 
 # Path to the AgERA5 DEM data
 base_dir = "C:/AgERA5"
@@ -72,7 +73,7 @@ def is_point_on_land(lon, lat):
 
 # Function to handle the click event on the map
 def onclick(event, ax, button):
-    global selected_lon, selected_lat, popup_text, closest_gridpoint, instruction_text
+    global selected_lon, selected_lat, popup_text, closest_gridpoint, instruction_text, selected_marker, distance_text
 
     # Ignore clicks outside the map (e.g., in the button area)
     if event.inaxes != ax:
@@ -86,19 +87,43 @@ def onclick(event, ax, button):
     # Get the clicked coordinates
     lon, lat = event.xdata, event.ydata
     
-    # Clear previous popup message
+    # Clear previous popup message, if it exists
     if popup_text:
-        popup_text.remove()
-    
+        try:
+            popup_text.remove()
+        except ValueError:
+            pass  # Handle cases where the popup_text doesn't exist
+
+    # Clear the previous marker if it exists
+    if selected_marker:
+        try:
+            selected_marker.remove()
+        except ValueError:
+            pass  # Handle cases where the selected_marker doesn't exist
+
+    # Clear the previous distance text if it exists
+    if distance_text:
+        try:
+            distance_text.remove()
+        except ValueError:
+            pass  # Handle cases where the distance_text doesn't exist
+
     # Check if the clicked point is on land
     if is_point_on_land(lon, lat):
         selected_lon, selected_lat = lon, lat
+
+        # Add a marker to the selected point and display it's coordinates
+        selected_marker = ax.plot(lon, lat, marker='*', color='green', markersize=6, transform=ccrs.PlateCarree())[0]
         popup_text = ax.text(0.5, 1.05, f"Valid coordinates: Longitude: {lon:.2f}, Latitude: {lat:.2f}",
                              transform=ax.transAxes, fontsize=12, ha='center', color='green')
-        button.ax.set_visible(True)  # Show the button
 
-        # Find the closest AgERA5 gridpoint
+        # Find and calculate distance to closest AgERA5 gridpoint
         closest_gridpoint = find_closest_gridpoint(lon, lat)
+        distance = haversine(lon, lat, closest_gridpoint['longitude'], closest_gridpoint['latitude'])
+        distance_text = ax.text(0.5, 1.01, f"Distance to closest grid point: {distance:.2f} km",
+                                transform=ax.transAxes, fontsize=10, ha='center', color='green')
+
+        button.ax.set_visible(True)  # Show the button
     else:
         selected_lon, selected_lat = None, None
         popup_text = ax.text(0.5, 1.05, "Invalid coordinates (over ocean). Please try again.",
@@ -115,8 +140,7 @@ def on_button_clicked(event):
         print(f"Selected Coordinates: Longitude: {selected_lon:.2f}, Latitude: {selected_lat:.2f}")
         
         # Print the closest gridpoint coordinates
-        print(f"Closest AgERA5 Gridpoint: Longitude: {closest_gridpoint['longitude']:.2f}, Latitude: {closest_gridpoint['latitude']:.2f}")
-        
+        print(f"Closest grid point: Longitude: {closest_gridpoint['longitude']:.2f}, Latitude: {closest_gridpoint['latitude']:.2f}")     
         plt.close()  # Close the map when the coordinates are confirmed
 
 # Function to plot the map and allow coordinate selection
@@ -261,8 +285,55 @@ def plot_clickable_map():
     # Display the plot
     plt.show()
 
-# Call the function to
+def manually_input_coordinates():
+    global selected_lon, selected_lat
 
+    while True:
+        try:
+            # Prompt user for manual input within the bounds
+            selected_lon = float(input("Enter a Longitude (decimal degrees) between 15 and 35°E: "))
+            selected_lat = float(input("Enter a Latitude (decimal degrees) between -35 and -20°S: "))
+            if selected_lat > 0:
+                selected_lat *= -1  # Convert to negative since it's in the Southern Hemisphere
 
-# Call the function to plot the clickable map
-plot_clickable_map()
+            # Validate that the input coordinates are within the study area bounds
+            if not (15 <= selected_lon <= 35 and -35 <= selected_lat <= -20):
+                print("Error: Coordinates are outside the valid area. Please try again.")
+                continue
+
+            # Check if the coordinates fall over land
+            if not is_point_on_land(selected_lon, selected_lat):
+                print("Error: Coordinates are over water. Please select land coordinates.")
+                continue
+
+            # If all validations pass, proceed with calculating the distance to the closest grid point
+            print(f"Selected Coordinates: Longitude: {selected_lon:.2f}, Latitude: {selected_lat:.2f}")
+
+            # Find the closest gridpoint
+            closest_gridpoint = find_closest_gridpoint(selected_lon, selected_lat)
+            print(f"Closest grid point: Longitude: {closest_gridpoint['longitude']:.2f}, Latitude: {closest_gridpoint['latitude']:.2f}")
+            distance = haversine(selected_lon, selected_lat, closest_gridpoint['longitude'], closest_gridpoint['latitude'])
+            print(f"Distance to closest grid point: {distance:.2f} km")
+            break  # Exit the loop if valid input is provided
+
+        except ValueError:
+            print("Invalid input. Please enter valid numerical coordinates.")
+
+# Main menu to choose between manual input or map selection
+def main_menu():
+    print("Coordinate Selection Menu")
+    print("1. Manually Enter Coordinates")
+    print("2. Select Coordinates from Map")
+
+    choice = input("Enter your choice (1 or 2): ")
+
+    if choice == '1':
+        manually_input_coordinates()
+    elif choice == '2':
+        print("Please navigate to the map area...")
+        plot_clickable_map()
+    else:
+        print("Invalid choice. Please select 1 or 2.")
+
+# Run the menu
+main_menu()
