@@ -4,11 +4,11 @@ Created on Fri Sep  6 09:00:20 2024
 
 This scripts reads the daily station data from Excel (combined) = stn
 and the climate database reanalysis data from CSV (nearest grid point) =cdb
-and merge them into a single Excel file for statistical analysis
+and merge them into a single CSV file for statistical analysis
 Just change the name of the input and output file & path, e.g.:
 input1 = Glen_Combined_1984_2023.xlsx
 input2 = ClimateTimeSeries_AgERA5_-28.9_26.3.csv
-output = Glen_Merged_stn_cdb.xlsx
+output = Glen_Merged_stn_cdb.csv
 
 @author: SteynAS
 """
@@ -21,7 +21,7 @@ stn_dir = r'C:\StnData'
 cdb_dir = r'C:\AgERA5\ClimDataBase'
 stn_file = 'Glen_Combined_1984_2023.xlsx'
 cdb_file = 'ClimateTimeSeries_AgERA5_-28.9_26.3.csv'
-out_file = 'Glen_Merged_stn_cdb.xlsx'
+out_file = 'Glen_Merged_stn_cdb.csv'
 output_file_path = os.path.join(stn_dir, out_file)
 
 # Paths to the files
@@ -107,7 +107,7 @@ columns_to_include = ['Date'] + list(stn_rename_mapping.values()) + list(cdb_ren
 df_merged = df_merged[columns_to_include]
 
 # Save the filtered merged dataset to the specified output file
-df_merged.to_excel(output_file_path, index=False)
+df_merged.to_csv(output_file_path, index=False)
 print(f"\nMerged comparison data saved to: {output_file_path}")
 
 # Display the first few rows of the final output for verification
