@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Script to plot Wind Speed at 2m (U2) from netCDF using FAO56 conversion.
+Script to plot Precipitation (Pr) from netCDF files for a specific date.
 Clips seaward colors using inverted land polygon as a white overlay.
 Set date in line 23
 
@@ -22,49 +22,51 @@ from shapely.geometry import Polygon, MultiPolygon
 # Set date string
 YYYYMMDD = "20130119"
 
-def reduce_wind_speed_to_2m_FAO56(wind_speed_10m):
-    adjustment_factor = 4.87 / np.log(67.8 * 10 - 5.42)
-    return wind_speed_10m * adjustment_factor
-
-def load_ws_data(file_path, variable_name):
+def load_pr_data(file_path, variable_name):
+    # Load Pr data from NetCDF file
     dataset = nc.Dataset(file_path)
     lon = dataset.variables['lon'][:]
     lat = dataset.variables['lat'][:]
-    wind10m = dataset.variables[variable_name][0, :, :]
-    wind2m = reduce_wind_speed_to_2m_FAO56(wind10m)
-    return lon, lat, wind2m
+    pr = dataset.variables[variable_name][:]
+    return lon, lat, pr
 
-def plot_wind2m(lon, lat, ws2m_data):
+def plot_pr(lon, lat, pr_data):
     fig, ax = plt.subplots(figsize=(10, 6), subplot_kw={'projection': ccrs.PlateCarree()})
+
+    # Set the extent to match the data domain
     ax.set_extent([lon.min(), lon.max(), lat.min(), lat.max()], crs=ccrs.PlateCarree())
 
+    # Add geographical features
     ax.add_feature(cfeature.LAND, edgecolor='black')
     ax.add_feature(cfeature.COASTLINE)
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     ax.add_feature(cfeature.LAKES, edgecolor='black', facecolor='none')
 
-    # Define wind speed bins (m/s) and colours
-    bounds = [0, 1, 2, 3, 4, 5, 6, 8, 10, 15]
-    colours = [
-        '#ffffff',  # 0 m/s (white)
-        '#e0f3db',  # 0–1
-        '#ccebc5',  # 1–2
-        '#a8ddb5',  # 2–3
-        '#7bccc4',  # 3–4
-        '#4eb3d3',  # 4–5
-        '#2b8cbe',  # 5–6
-        '#0868ac',  # 6–8
-        '#084081',  # 8–10
-        '#191970'   # 10–15+
+    # Define updated precipitation bins and colors
+    bounds = [0, 0.1, 5, 10, 15, 25, 50, 100, 150, 200]
+    colors = [
+        '#ffffff',  # 0–0.1 mm (trace)
+        '#e0f3db',  # 0.1–5 mm
+        '#ccebc5',  # 5–10 mm
+        '#a8ddb5',  # 10–15 mm
+        '#41ab5d',  # dark green (15–25 mm)
+        '#7bccc4',  # 25–50 mm
+        '#4eb3d3',  # 50–100 mm
+        '#2b8cbe',  # 100–150 mm
+        '#0868ac',  # 150–200 mm
+        '#191970'   # >200 mm - midnight blue (extend='max')
     ]
 
-    cmap = mcolors.ListedColormap(colours)
+    cmap = mcolors.ListedColormap(colors)
     norm = mcolors.BoundaryNorm(bounds, len(bounds) - 1)
 
-    masked_ws = np.ma.masked_invalid(ws2m_data)
+    # Mask only nodata values if needed
+    pr_slice = pr_data[0, :, :]
+    masked_pr = np.ma.masked_invalid(pr_slice)
 
+    # Plot precipitation
     contour = ax.contourf(
-        lon, lat, masked_ws,
+        lon, lat, masked_pr,
         levels=bounds,
         cmap=cmap, norm=norm, extend='max', transform=ccrs.PlateCarree()
     )
@@ -112,11 +114,13 @@ def plot_wind2m(lon, lat, ws2m_data):
             )
             ax.add_patch(patch)
 
-    tick_labels = ['1', '2', '3', '4', '5', '6', '8', '10', '15']
+    # Add colorbar with integer tick labels
+    tick_labels = ['0.1', '5', '10', '15', '25', '50', '100', '150', '200']
     cbar = plt.colorbar(contour, ax=ax, orientation='vertical', pad=0.05, ticks=bounds[1:])
     cbar.ax.set_yticklabels(tick_labels)
-    cbar.set_label('Wind Speed at 2 m (m/s)')
+    cbar.set_label('Precipitation (mm/day)')
 
+    # Add gridlines and labels with 2x2 degree spacing
     gl = ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
     gl.xlocator = mticker.MultipleLocator(2)
     gl.ylocator = mticker.MultipleLocator(2)
@@ -128,8 +132,12 @@ def plot_wind2m(lon, lat, ws2m_data):
     plt.show()
 
 if __name__ == "__main__":
-    ws_file = fr'C:\AgERA5\WS\Wind-Speed-10m-Mean_C3S-glob-agric_AgERA5_{YYYYMMDD}_final-v1.1.area-subset.-20.15.-35.35.nc'
-    ws_variable = 'Wind_Speed_10m_Mean'
+    # Construct file path from date
+    pr_file = fr'C:\AgERA5\Pr\Precipitation-Flux_C3S-glob-agric_AgERA5_{YYYYMMDD}_final-v1.1.area-subset.-20.15.-35.35.nc'
 
-    lon, lat, ws2m = load_ws_data(ws_file, ws_variable)
-    plot_wind2m(lon, lat, ws2m)
+    pr_variable = 'Precipitation_Flux'  # Updated variable name
+
+    lon, lat, pr_data = load_pr_data(pr_file, pr_variable)
+
+    # Plot Pr for specified date
+    plot_pr(lon, lat, pr_data)
